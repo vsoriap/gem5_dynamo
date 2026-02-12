@@ -368,6 +368,32 @@ void notifyCoalesced(Addr addr, RubyRequestType type, RequestPtr req,
 }
 
 
+int getPolicy(Addr address){
+  if (use_amo_predictor){
+    return amo_predictor.queryPolicy(address); 
+  } else {
+    return policy_type;
+  }
+}
+
+void observeReuse(Addr address){
+  if (use_amo_predictor){
+    amo_predictor.observeReuse(address);
+  }
+}
+
+void observeFetch(Addr address){
+  if (use_amo_predictor){
+    amo_predictor.observeFetch(address);
+  }
+}
+
+void observeInvalidationEviction(Addr address){
+  if (use_amo_predictor){
+    amo_predictor.observeInvalidationEviction(address);
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////
 // Helper functions
 

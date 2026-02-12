@@ -1,6 +1,4 @@
-# -*- mode:python -*-
-
-# Copyright (c) 2021,2023 ARM Limited
+# Copyright (c) 2025 BSC
 # All rights reserved.
 #
 # The license below extends only to copyright in the software and shall
@@ -11,9 +9,6 @@
 # terms below provided that you ensure that this notice is replicated
 # unmodified and in its entirety in all distributions of the software,
 # modified or unmodified, in source code or in binary form.
-#
-# Copyright (c) 2012 Mark D. Hill and David A. Wood
-# All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -38,27 +33,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Import('*')
+from m5.params import *
+from m5.proxy import *
+from m5.SimObject import SimObject
 
-if not env['CONF']['RUBY']:
-    Return()
+class RubyPredictor(SimObject):
+    type = "RubyPredictor"
+    cxx_class = "gem5::ruby::RubyPredictor"
+    cxx_header = "mem/ruby/structures/RubyPredictor.hh"
 
-SimObject('RubyCache.py', sim_objects=['RubyCache'])
-SimObject('DirectoryMemory.py', sim_objects=['RubyDirectoryMemory'])
-SimObject('RubyPredictor.py', sim_objects=['RubyPredictor'])
-SimObject('RubyPrefetcher.py', sim_objects=['RubyPrefetcher'])
-SimObject('WireBuffer.py', sim_objects=['RubyWireBuffer'])
+    num_entries = Param.UInt32(1024,
+        "Number of entries")
 
-Source('DirectoryMemory.cc')
-Source('CacheMemory.cc')
-Source('WireBuffer.cc')
-Source('PersistentTable.cc')
-Source('RubyPredictor.cc')
-Source('RubyPrefetcher.cc')
-Source('RubyPrefetcherProxy.cc')
-Source('TimerTable.cc')
-Source('BankedArray.cc')
-Source('ALUFreeListArray.cc')
-Source('TBEStorage.cc')
-if env['CONF']['RUBY_PROTOCOL_CHI']:
-    Source('MN_TBETable.cc')
+    assoc = Param.UInt32(2,
+        "Associativity of each set")
+        
+    max_counter = Param.UInt32(4,
+        "Maximum value of counter for all predictor entries")
+        
+    init_counter = Param.UInt32(4,
+        "Initial value of counter for all predictor entries")  

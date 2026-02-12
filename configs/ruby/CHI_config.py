@@ -251,12 +251,14 @@ class CHI_L1Controller(Base_CHI_Cache_Controller):
     Default parameters for a L1 Cache controller
     """
 
-    def __init__(self, ruby_system, sequencer, cache, prefetcher):
+    def __init__(self, ruby_system, sequencer, cache, prefetcher, amo_predictor):
         super().__init__(ruby_system)
         self.sequencer = sequencer
         self.cache = cache
         self.prefetcher = prefetcher
         self.use_prefetcher = prefetcher != NULL
+        self.amo_predictor = amo_predictor
+        self.use_amo_predictor = amo_predictor != NULL
         self.send_evictions = True
         self.is_HN = False
         self.enable_DMT = False
@@ -295,6 +297,8 @@ class CHI_L2Controller(Base_CHI_Cache_Controller):
         self.cache = cache
         self.prefetcher = prefetcher
         self.use_prefetcher = prefetcher != NULL
+        self.amo_predictor = NULL
+        self.use_amo_predictor = False
         self.allow_SD = True
         self.is_HN = False
         self.enable_DMT = False
@@ -332,6 +336,8 @@ class CHI_HNFController(Base_CHI_Cache_Controller):
         self.cache = cache
         self.prefetcher = prefetcher
         self.use_prefetcher = prefetcher != NULL
+        self.amo_predictor = NULL
+        self.use_amo_predictor = False
         self.addr_ranges = addr_ranges
         self.allow_SD = True
         self.is_HN = True
@@ -409,6 +415,8 @@ class CHI_DMAController(Base_CHI_Cache_Controller):
 
         self.prefetcher = NULL
         self.use_prefetcher = False
+        self.amo_predictor = NULL
+        self.use_amo_predictor = False
         self.cache = DummyCache()
         self.sequencer.dcache = NULL
         # All allocations are false
@@ -490,6 +498,7 @@ class CHI_RNF(CHI_Node):
         cache_line_size,
         l1Iprefetcher_type=None,
         l1Dprefetcher_type=None,
+        l1AMOpredictor_enable=True,
     ):
         super().__init__(ruby_system)
 
@@ -538,13 +547,18 @@ class CHI_RNF(CHI_Node):
             else:
                 l1d_pf = NULL
 
+            if l1AMOpredictor_enable != False:
+                l1d_ap = RubyPredictor()
+            else:
+                l1d_ap = NULL
+
             # cache controllers
             cpu.l1i = CHI_L1Controller(
-                ruby_system, cpu.inst_sequencer, l1i_cache, l1i_pf
+                ruby_system, cpu.inst_sequencer, l1i_cache, l1i_pf, NULL
             )
 
             cpu.l1d = CHI_L1Controller(
-                ruby_system, cpu.data_sequencer, l1d_cache, l1d_pf
+                ruby_system, cpu.data_sequencer, l1d_cache, l1d_pf, l1d_ap
             )
 
             cpu.inst_sequencer.dcache = NULL

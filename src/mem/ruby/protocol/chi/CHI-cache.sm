@@ -50,6 +50,9 @@ machine(MachineType:Cache, "Cache coherency protocol") :
   // null if the cache does not support prefetching
   prefetch::Base * prefetcher;
 
+  // AMO Predictor to select the best fitting policy
+  RubyPredictor * amo_predictor;
+
   // Additional pipeline latency modeling for the different request types
   // When defined, these are applied after the initial tag array read and
   // sending necessary snoops.
@@ -177,6 +180,9 @@ machine(MachineType:Cache, "Cache coherency protocol") :
 
   // Use prefetcher
   bool use_prefetcher, default="false";
+
+  // Use AMO predictor
+  bool use_amo_predictor, default="false";
 
   // Message Queues
 

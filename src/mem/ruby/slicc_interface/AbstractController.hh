@@ -403,6 +403,7 @@ class AbstractController : public ClockedObject, public Consumer
     { fatal("coalesce: prefetching not supported"); return false; }
 
     friend class RubyPrefetcherProxy;
+    friend class RubyPredictor;
 
   protected:
     const NodeID m_version;

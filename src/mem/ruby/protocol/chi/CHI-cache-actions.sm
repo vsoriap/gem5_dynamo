@@ -815,6 +815,8 @@ action(Initiate_LoadHit, desc="") {
     tbe.actions.push(Event:DataArrayRead);
   }
   tbe.actions.push(Event:LoadHit);
+  // Update Predictor
+  observeReuse(tbe.addr);
 }
 
 action(Initiate_LoadMiss, desc="") {
@@ -835,6 +837,8 @@ action(Initiate_StoreHit, desc="") {
   tbe.actions.push(Event:StoreHit);
   tbe.actions.push(Event:CheckCacheFill);
   tbe.actions.push(Event:TagArrayWrite);
+  // Update Predictor
+  observeReuse(tbe.addr);
 }
 
 action(Initiate_StoreMiss, desc="") {
@@ -859,6 +863,8 @@ action(Initiate_Atomic_UC, desc="") {
     tbe.actions.push(Event:AtomicHit);
     tbe.actions.pushNB(Event:DataArrayWrite);
     tbe.actions.pushNB(Event:TagArrayWrite);
+    // Update Predictor (Rare Case)
+    observeReuse(tbe.addr);
   } else {
     error("Invalid policy type");
   }
@@ -874,21 +880,26 @@ action(Initiate_Atomic_UD, desc="") {
     tbe.actions.push(Event:AtomicHit);
     tbe.actions.pushNB(Event:DataArrayWrite);
     tbe.actions.pushNB(Event:TagArrayWrite);
+    // Update Predictor
+    observeReuse(tbe.addr);
   } else {
     error("Invalid policy type");
   }
 }
 
 action(Initiate_AtomicReturn_I, desc="") {
-  if (policy_type == 0){ // ALL NEAR
+  int policy_type_tmp := getPolicy(tbe.addr);  
+  if (policy_type_tmp == 0){ // ALL NEAR
     tbe.actions.push(Event:SendReadUnique);
     tbe.actions.push(Event:WriteFEPipe);
     tbe.actions.push(Event:CheckCacheFill);
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
-  } else if ((policy_type == 1) || // UNIQUE NEAR
-             (policy_type == 2)) { // PRESENT NEAR
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
+  } else if ((policy_type_tmp == 1) || // UNIQUE NEAR
+             (policy_type_tmp == 2)) { // PRESENT NEAR
     tbe.actions.push(Event:SendAtomicReturn);
     tbe.actions.push(Event:SendARData);
     tbe.dataToBeInvalid := true;
@@ -900,15 +911,19 @@ action(Initiate_AtomicReturn_I, desc="") {
 }
 
 action(Initiate_AtomicNoReturn_I, desc="") {
-  if (policy_type == 0){ // ALL NEAR
+  int policy_type_tmp := getPolicy(tbe.addr);  
+  if (policy_type_tmp == 0){ // ALL NEAR
     tbe.actions.push(Event:SendReadUnique);
     tbe.actions.push(Event:WriteFEPipe);
     tbe.actions.push(Event:CheckCacheFill);
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
-  } else if ((policy_type == 1) || // UNIQUE NEAR
-             (policy_type == 2)) { // PRESENT NEAR
+
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
+  } else if ((policy_type_tmp == 1) || // UNIQUE NEAR
+             (policy_type_tmp == 2)) { // PRESENT NEAR
     tbe.actions.push(Event:SendAtomicNoReturn);
     tbe.actions.push(Event:SendANRData);
     tbe.dataToBeInvalid := true;
@@ -928,6 +943,9 @@ action(Initiate_AtomicReturn_SD, desc="") {
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
+
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
   } else if (policy_type == 1) { // UNIQUE NEAR
     tbe.actions.push(Event:SendAtomicReturn);
     tbe.actions.push(Event:SendARData);
@@ -948,6 +966,9 @@ action(Initiate_AtomicNoReturn_SD, desc="") {
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
+
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
   } else if (policy_type == 1) { // UNIQUE NEAR
     tbe.actions.push(Event:SendAtomicNoReturn);
     tbe.actions.push(Event:SendANRData);
@@ -968,6 +989,9 @@ action(Initiate_AtomicReturn_SC, desc="") {
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
+
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
   } else if (policy_type == 1) { // UNIQUE NEAR
     tbe.actions.push(Event:SendAtomicReturn);
     tbe.actions.push(Event:SendARData);
@@ -988,6 +1012,9 @@ action(Initiate_AtomicNoReturn_SC, desc="") {
     tbe.actions.push(Event:WriteBEPipe);
     tbe.actions.push(Event:TagArrayWrite);
     tbe.atomic_to_be_done := true;
+
+    // Observe fetch for AMO we want to track
+    observeFetch(tbe.addr);
   } else if (policy_type == 1) { // UNIQUE NEAR
     tbe.actions.push(Event:SendAtomicNoReturn);
     tbe.actions.push(Event:SendANRData);
@@ -1351,6 +1378,7 @@ action(Initiate_Evict, desc="") {
     tbe.actions.push(Event:SendCompIResp);
   }
   tbe.actions.push(Event:TagArrayWrite);
+  observeInvalidationEviction(tbe.addr);
 }
 
 action(Initiate_MaintainCoherence, desc="") {
@@ -1422,6 +1450,7 @@ action(Initiate_InvalidationSnoop, desc="") {
   }
 
   tbe.dataToBeInvalid := true;
+  observeInvalidationEviction(tbe.addr);
 }
 
 action(Initiate_SnpShared, desc="") {
@@ -1495,6 +1524,7 @@ action(Initiate_Replacement_Evict, desc="") {
   tbe.actions.push(Event:SendEvict);
   tbe.dataToBeInvalid := true;
   tbe.actions.pushNB(Event:TagArrayWrite);
+  observeInvalidationEviction(tbe.addr);
 }
 
 action(Initiate_Replacement_JustDrop, desc="") {
@@ -1538,6 +1568,7 @@ action(Initiate_Replacement_WB, desc="") {
   tbe.actions.push(Event:SendWBData);
   tbe.dataToBeInvalid := true;
   tbe.actions.pushNB(Event:TagArrayWrite);
+  observeInvalidationEviction(tbe.addr);
 }
 
 

@@ -274,3 +274,10 @@ structure(RubyPrefetcherProxy, external = "yes") {
     // this for every RubyPrefetcherProxy object present
     void regProbePoints();
 }
+
+structure(RubyPredictor, external = "yes") {
+    int queryPolicy(Addr address);
+    void observeReuse(Addr address);
+    void observeFetch(Addr address);
+    void observeInvalidationEviction(Addr address);
+}

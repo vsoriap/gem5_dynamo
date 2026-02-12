@@ -59,6 +59,7 @@ DebugFlag('RubyDma')
 DebugFlag('RubyGenerated')
 DebugFlag('RubyNetwork')
 DebugFlag('RubyPort')
+DebugFlag('RubyPredictor')
 DebugFlag('RubyPrefetcher')
 DebugFlag('RubyQueue')
 DebugFlag('RubySequencer')
@@ -73,7 +74,7 @@ DebugFlag('RubyHitMiss')
 CompoundFlag('Ruby', [ 'RubyQueue', 'RubyNetwork', 'RubyTester',
     'RubyGenerated', 'RubySlicc', 'RubySystem', 'RubyCache',
     'RubyDma', 'RubyPort', 'RubySequencer', 'RubyCacheTrace',
-    'RubyPrefetcher', 'RubyProtocol', 'RubyHitMiss'])
+    'RubyPredictor', 'RubyPrefetcher', 'RubyProtocol', 'RubyHitMiss'])
 
 #
 # Link includes
@@ -111,6 +112,7 @@ MakeInclude('structures/CacheMemory.hh')
 MakeInclude('structures/DirectoryMemory.hh')
 MakeInclude('structures/PerfectCacheMemory.hh')
 MakeInclude('structures/PersistentTable.hh')
+MakeInclude('structures/RubyPredictor.hh')
 MakeInclude('structures/RubyPrefetcher.hh')
 MakeInclude('structures/RubyPrefetcherProxy.hh')
 MakeInclude('structures/TBEStorage.hh')
