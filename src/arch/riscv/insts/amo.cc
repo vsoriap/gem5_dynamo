@@ -146,5 +146,36 @@ AtomicMemOpMicro::generateDisassembly(
     return ss.str();
 }
 
+// AMO Pair
+
+std::string
+AtomicMemOpPair::generateDisassembly(
+        Addr pc, const loader::SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    ss << mnemonic;
+    if (machInst.aq || machInst.rl)
+        ss << '_';
+    if (machInst.aq)
+        ss << "aq";
+    if (machInst.rl)
+        ss << "rl";
+    ss << ' ' << registerName(intRegClass[machInst.rd]) << ", "
+            << registerName(intRegClass[machInst.rs2]) << ", ("
+            << registerName(intRegClass[machInst.rs1]) << ')';
+    return ss.str();
+}
+
+std::string
+AtomicMemOpPairMicro::generateDisassembly(
+        Addr pc, const loader::SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    ss << mnemonic << ' ' << registerName(destRegIdx(0)) << ", "
+            << registerName(srcRegIdx(1)) << ", ("
+            << registerName(srcRegIdx(0)) << ')';
+    return ss.str();
+}
+
 } // namespace RiscvISA
 } // namespace gem5

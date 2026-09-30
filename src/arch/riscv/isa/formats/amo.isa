@@ -66,6 +66,24 @@ def template AtomicMemOpRMWDeclare {{
     };
 }};
 
+def template AtomicMemOpPairDeclare {{
+    /**
+     * Static instruction class for an AtomicMemOp operation
+     */
+    class %(class_name)s : public %(base_class)s
+    {
+      public:
+        // Constructor
+        %(class_name)s(ExtMachInst machInst);
+
+      protected:
+        /*
+         * The main RMW part of an AMO
+         */
+        class %(class_name)sRMW;
+    };
+}};
+
 def template LRSCDeclare {{
     /**
      * Static instruction class for an AtomicMemOp operation
@@ -225,6 +243,58 @@ def template AtomicMemOpRMWConstructor {{
         flags[IsLoad] = false;
         flags[IsStore] = false;
         flags[IsAtomic] = true;
+    }
+}};
+
+def template AtomicMemOpPairMacroConstructor {{
+    %(class_name)s::%(class_name)s(ExtMachInst machInst)
+            : %(base_class)s("%(mnemonic)s", machInst, %(op_class)s)
+    {
+        %(constructor)s;
+
+        StaticInstPtr rel_fence;
+        StaticInstPtr rmw_op;
+        StaticInstPtr acq_fence;
+
+        // set up release fence
+        if (RL) {
+            rel_fence = new MemFenceMicro(machInst, No_OpClass);
+            rel_fence->setFlag(IsFirstMicroop);
+            rel_fence->setFlag(IsReadBarrier);
+            rel_fence->setFlag(IsWriteBarrier);
+            rel_fence->setFlag(IsDelayedCommit);
+        }
+
+        // set up atomic rmw op
+        rmw_op = new %(class_name)sRMW(machInst, this);
+
+        if (!RL) {
+            rmw_op->setFlag(IsFirstMicroop);
+        }
+
+        if (!AQ) {
+            rmw_op->setFlag(IsLastMicroop);
+        } else {
+            rmw_op->setFlag(IsDelayedCommit);
+        }
+
+        // set up acquire fence
+        if (AQ) {
+            acq_fence = new MemFenceMicro(machInst, No_OpClass);
+            acq_fence->setFlag(IsLastMicroop);
+            acq_fence->setFlag(IsReadBarrier);
+            acq_fence->setFlag(IsWriteBarrier);
+        }
+
+        if (RL && AQ) {
+            microops = {rel_fence, rmw_op, acq_fence};
+        } else if (RL) {
+            microops = {rel_fence, rmw_op};
+        } else if (AQ) {
+            microops = {rmw_op, acq_fence};
+        } else {
+            microops = {rmw_op};
+        }
     }
 }};
 
@@ -516,6 +586,41 @@ def format AtomicMemOp(memacc_code, amoop_code, postacc_code={{ }},
     rmw_mem_flags = makeList(mem_flags)
     rmw_inst_flags = makeList(inst_flags)
     rmw_iop = InstObjParams(name, Name, 'AtomicMemOpMicro',
+                            {'ea_code': ea_code,
+                             'memacc_code': memacc_code,
+                             'postacc_code': postacc_code,
+                             'amoop_code': amoop_code},
+                            rmw_inst_flags)
+
+    rmw_mem_flags = ['(Request::%s)' % flag for flag in rmw_mem_flags]
+    align_flag = getAlignFlag(rmw_iop)
+    if align_flag:
+        rmw_mem_flags.append(align_flag)
+    rmw_iop.constructor += '\n\tmemAccessFlags = memAccessFlags | ' + \
+          '|'.join(rmw_mem_flags) + ';'
+
+    header_output += AtomicMemOpRMWDeclare.subst(rmw_iop)
+    decoder_output += AtomicMemOpRMWConstructor.subst(rmw_iop)
+    exec_output += AtomicMemOpRMWExecute.subst(rmw_iop) \
+                 + AtomicMemOpRMWInitiateAcc.subst(rmw_iop) \
+                 + AtomicMemOpRMWCompleteAcc.subst(rmw_iop)
+}};
+
+def format AtomicMemOpPair(memacc_code, amoop_code, postacc_code={{ }},
+        ea_code={{EA = rvSext(Rs1);}}, mem_flags=[], inst_flags=[]) {{
+    macro_ea_code = ''
+    macro_inst_flags = []
+    macro_iop = InstObjParams(name, Name, 'AtomicMemOpPair', macro_ea_code,
+                              macro_inst_flags)
+    header_output = AtomicMemOpPairDeclare.subst(macro_iop)
+    decoder_output = AtomicMemOpPairMacroConstructor.subst(macro_iop)
+    decode_block = BasicDecode.subst(macro_iop)
+
+    exec_output = ''
+
+    rmw_mem_flags = makeList(mem_flags)
+    rmw_inst_flags = makeList(inst_flags)
+    rmw_iop = InstObjParams(name, Name, 'AtomicMemOpPairMicro',
                             {'ea_code': ea_code,
                              'memacc_code': memacc_code,
                              'postacc_code': postacc_code,

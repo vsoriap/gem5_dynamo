@@ -2183,6 +2183,16 @@ decode QUADRANT default Unknown::unknown() {
                 }}, mem_flags=ATOMIC_RETURN_OP);
             }
             0x3: decode RVTYPE {
+                0x0: decode AMOFUNCT {
+                    0x5: AtomicMemOpPair::amocaspair_d({{
+                        Rd_ud = Mem_ud;
+                    }}, {{
+                        TypedAtomicOpFunctor<uint64_t> *amo_op =
+                            new AtomicGeneric3Op<uint64_t>(Rd_ud, Rs2_ud,
+                                    [](uint64_t* b, uint64_t a,
+                                    uint64_t c){ if (a == *b){ *b = c; } });
+                    }}, mem_flags=ATOMIC_RETURN_OP);
+                }
                 0x1: decode AMOFUNCT {
                     0x0: AtomicMemOp::amoadd_d({{
                         Rd_sd = Mem_sd;
@@ -2225,13 +2235,13 @@ decode QUADRANT default Unknown::unknown() {
                         Rd_ud = Mem_ud;
                     }}, {{
                         TypedAtomicOpFunctor<uint64_t> *amo_op =
-                            new AtomicGeneric3Op<uint64_t>(Rd_ud, Rs2_ud,
-                                    [](uint64_t* b, uint64_t a, uint64_t c){
+                              new AtomicGeneric3Op<uint64_t>(Rd_ud, Rs2_ud,
+                                     [](uint64_t* b, uint64_t a, uint64_t c){
                                          uint64_t mem_data = letoh(*b);
                                          if (a == mem_data){
-                                             *b = htole(c);
+                                            *b = htole(c);
                                          }
-                                    });
+                                     });
                     }}, mem_flags=ATOMIC_RETURN_OP);
                     0x8: AtomicMemOp::amoor_d({{
                         Rd_sd = Mem_sd;
@@ -2302,6 +2312,28 @@ decode QUADRANT default Unknown::unknown() {
                                                      a : mem_data;
                                 *b = htole(new_data);
                             });
+                    }}, mem_flags=ATOMIC_RETURN_OP);
+                }
+            }
+            0x4: decode RVTYPE {
+                0x1: decode AMOFUNCT {
+                    0x5: AtomicMemOpPair::amocaspair_q({{
+                        std::array<uint64_t, 2> temp1;
+
+                        std::array<uint64_t, 2> temp2;
+                        Mem_tud = temp2;
+                    }}, {{
+                        TypedAtomicOpFunctor<uint64_t> *amo_op =
+                              new AtomicGeneric3Op<uint64_t>(Mem_tud, Rswr,
+                                    [](uint64_t* b, std::array<uint64_t, 2> a,
+                                       std::array<uint64_t, 2> c){
+                                        uint64_t mem_data0 = letoh(b[0]);
+                                        uint64_t mem_data1 = letoh(b[1]);
+                                        if(a[0]==mem_data0 && a[1]==mem_data1){
+                                            b[0] = htole(c[0]);
+                                            b[1] = htole(c[1]);
+                                        }
+                                    });
                     }}, mem_flags=ATOMIC_RETURN_OP);
                 }
             }

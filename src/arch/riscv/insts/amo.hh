@@ -117,6 +117,26 @@ class AtomicMemOpMicro : public RiscvMicroInst
         Addr pc, const loader::SymbolTable *symtab) const override;
 };
 
+// AMO Pair
+class AtomicMemOpPair : public RiscvMacroInst
+{
+  protected:
+    using RiscvMacroInst::RiscvMacroInst;
+
+    std::string generateDisassembly(
+        Addr pc, const loader::SymbolTable *symtab) const override;
+};
+
+class AtomicMemOpPairMicro : public RiscvMicroInst
+{
+  protected:
+    Request::Flags memAccessFlags;
+    using RiscvMicroInst::RiscvMicroInst;
+
+    std::string generateDisassembly(
+        Addr pc, const loader::SymbolTable *symtab) const override;
+};
+
 /**
  * A generic atomic op class
  */
