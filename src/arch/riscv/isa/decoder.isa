@@ -2065,6 +2065,14 @@ decode QUADRANT default Unknown::unknown() {
         }
 
         0x0b: decode FUNCT3 {
+            0x0: decode AMOFUNCT {
+                0x6: AtomicLoadAcquire::lb_aq({{
+                    Rd_sd = Mem_sb;
+                }});
+                0x7: AtomicStoreRelease::st_rl({{
+                    Mem_ub = Rs2_ub;
+                }});
+            }
             0x2: decode AMOFUNCT {
                 0x2: LoadReserved::lr_w({{
                     Rd_sd = Mem_sw;

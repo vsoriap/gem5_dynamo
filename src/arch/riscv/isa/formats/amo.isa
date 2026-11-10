@@ -501,6 +501,41 @@ def format StoreCond(memacc_code, postacc_code={{ }},
         + StoreCondCompleteAcc.subst(iop)
 }};
 
+def format AtomicLoadAcquire(memacc_code, postacc_code={{ }},
+        ea_code={{EA = rvSext(Rs1);}}, mem_flags=[], inst_flags=[]) {{
+    macro_ea_code = ''
+    macro_inst_flags = []
+    macro_iop = InstObjParams(name, Name, 'AtomicLoadAcquire', macro_ea_code,
+                              macro_inst_flags)
+    header_output = LRSCDeclare.subst(macro_iop)
+    decoder_output = LRSCMacroConstructor.subst(macro_iop)
+    decode_block = BasicDecode.subst(macro_iop)
+
+    exec_output = ''
+
+    mem_flags = makeList(mem_flags)
+    inst_flags = makeList(inst_flags)
+    iop = InstObjParams(name, Name, 'AtomicLoadAcquireMicro',
+        {'ea_code': ea_code, 'memacc_code': memacc_code,
+        'postacc_code': postacc_code}, inst_flags)
+    mem_flags = [
+        'static_cast<Request::FlagsType>(Request::%s)' % flag
+        for flag in mem_flags
+    ]
+    align_flag = getAlignFlag(iop)
+    if align_flag:
+        mem_flags.append('static_cast<Request::FlagsType>(%s)' % align_flag)
+    iop.constructor += '\n\tmemAccessFlags = memAccessFlags | ' + \
+        '|'.join(mem_flags) + ';'
+
+    header_output += LRSCMicroDeclare.subst(iop)
+    decoder_output += LRSCMicroConstructor.subst(iop)
+    exec_output += AtomicLoadAcquireExecute.subst(iop) \
+        + AtomicLoadAcquireInitiateAcc.subst(iop) \
+        + AtomicLoadAcquireCompleteAcc.subst(iop)
+}};
+
+
 def format AtomicMemOp(memacc_code, amoop_code, postacc_code={{ }},
         ea_code={{EA = rvSext(Rs1);}}, mem_flags=[], inst_flags=[]) {{
     macro_ea_code = ''
